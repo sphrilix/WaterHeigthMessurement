@@ -86,24 +86,6 @@ int messuredHeigth = 0;
 long previousMillis = 0;
 
 /**
- * Method which providing the hand off of commands from the Arduino to the
- * SIM800L module and vise versa.
- */
-void updateSerial() {
-  delay(500);
-  while (Serial.available()) {
-
-    //Forward what Serial received to Software Serial Port
-    mySerial.write(Serial.read());
-  }
-  while(mySerial.available()) {
-
-    //Forward what Software Serial received to Serial Port
-    Serial.write(mySerial.read());
-  }
-}
-
-/**
  * Method which creates a message corresponding to a given code and returns it.
  * @param  code The internal message code
  * @return Returns the created message.
@@ -144,15 +126,13 @@ void sendingSMS(String number, int messageCode) {
 
   // Configuring TEXT mode
   mySerial.println("AT+CMGF=1");
-  updateSerial();
 
   // Command to write a sms
   mySerial.print("AT+CMGS=\"");
   mySerial.print(number);
   mySerial.println("\"");
-  updateSerial();
   mySerial.print(createMessage(messageCode));
-  updateSerial();
+
 
   // HEX-Code of the char the SIM800L needs to know the end of the sms
   mySerial.write(26);
@@ -176,17 +156,14 @@ void initGPRS() {
 
   // Configure the module for GPRS connection
   mySerial.println("AT+SAPBR=3,1,\"Contype\",\"GPRS\"");
-  updateSerial();
   delay(500);
 
   // Access data for the APN (needed for GPRS connection)
   mySerial.println("AT+CSTT=\"internet.t-mobile\",\"t-mobile\",\"tm\"");
-  updateSerial();
   delay(500);
 
   // Command for connecting to the GPRS network
   mySerial.println("AT+SAPBR=1,1");
-  updateSerial();
   delay(3000);
 
   /*
@@ -194,7 +171,6 @@ void initGPRS() {
    * failures occurs)
    */
   mySerial.println("AT+SAPBR=2,1");
-  updateSerial();
   delay(2000);
 }
 
@@ -203,15 +179,12 @@ void initGPRS() {
  */
 void initHTTP() {
   mySerial.println("AT+HTTPINIT");
-  updateSerial();
   delay(500);
   mySerial.println("AT+HTTPSSL=1");
-  updateSerial();
   delay(500);
 
   // Set user ID to 1 (Needed HTTP param)
   mySerial.println("AT+HTTPPARA=\"CID\",1");
-  updateSerial();
   delay(500);
 }
 
@@ -220,12 +193,10 @@ void initHTTP() {
  */
 void terminateConnection() {
   mySerial.println("AT+HTTPTERM");
-  updateSerial();
   delay(500);
 
   // Command to disconnect from the GPRS network
   mySerial.println("AT+SAPBR=0,1");
-  updateSerial();
   delay(500);
 }
 
@@ -242,14 +213,11 @@ void sendDataToServer() {
   mySerial.print(SERVER_PW);
   mySerial.print(messuredHeigth);
   mySerial.println("\"");
-  updateSerial();
   delay(500);
 
   // Establish the HTTP connection
   mySerial.println("AT+HTTPACTION=0");
-  updateSerial();
   delay(5000);
-  updateSerial();
   Serial.print("Gemessener Stand:");
   Serial.println(sonar.ping_cm());
   terminateConnection();
@@ -315,13 +283,11 @@ void setup() {
 
   // Configure the SIM800L to show the number of a caller
   //mySerial.println("AT+CLIP=1");
-  updateSerial();
   delay(10000);
 
   // If rtc module isn't working stop Arduino and send a sms to inform the admin
   if (! rtc.begin()) {
     sendingSMS(allowedNumbers[0], 8);
-    updateSerial();
     while (1);
   }
 }
