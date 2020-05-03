@@ -14,7 +14,7 @@
  */
 
 // First critical point (20 cm under foodbridge)
-#define CRIT_DIST_1 3
+#define CRIT_DIST_1 10
 
 // Second critical point (10 cm under foodbridge
 #define CRIT_DIST_2 2
@@ -132,7 +132,7 @@ void sendingSMS(String number, int messageCode) {
   mySerial.print(number);
   mySerial.println("\"");
   mySerial.print(createMessage(messageCode));
-
+  delay(1000);
 
   // HEX-Code of the char the SIM800L needs to know the end of the sms
   mySerial.write(26);
