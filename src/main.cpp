@@ -12,7 +12,7 @@
  * This is the code of the transmitter station, which provides the messure of
  * the water heigth by using the HC-SR04 ultra sonic sensor.
  * After the water heigth is messured the data will be sent every 2 hours to a
- * server over the GPRS network using the SIM800L module.
+ * server over the GPRS network using the SIM800L module.sdasdas
  */
 
 // First critical point (20 cm under foodbridge)
@@ -92,6 +92,9 @@ boolean messureFail = false;
 
 // Messured heigth of the water
 int messuredHeigth = 0;
+
+// Messured water temperature
+float messuredWaterTemp = 0;
 
 // Time in ms since the last correct messurement
 long previousMillis = 0;
@@ -307,11 +310,13 @@ void setup() {
  */
 void loop() {
   messuredHeigth = sonar.ping_cm();
+  messuredWaterTemp = tempSensor.getTempCByIndex(0);
   long currentMillis = millis();
   Serial.println(messuredHeigth);
-
+  Serial.println(messuredWaterTemp);
   // Check if sensor getting no wrong values
-  if (messuredHeigth > MIN_DIST && messuredHeigth < MAX_DIST) {
+  if (messuredHeigth > MIN_DIST && messuredHeigth < MAX_DIST
+          && messuredWaterTemp != DEVICE_DISCONNECTED_C) {
     messureFail = false;
     previousMillis = currentMillis;
     checkWaterHeight();
