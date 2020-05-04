@@ -3,6 +3,8 @@
 #include "NewPing.h"
 #include "SoftwareSerial.h"
 #include "Wire.h"
+#include "OneWire.h"
+#include "DallasTemperature.h"
 
 /**
  * This is a small IoT project, to automatically messure the water height of
@@ -52,11 +54,20 @@
 // Interval in ms for trying to get valid values after getting invalid ones
 #define INTERVAL 1200000
 
+// One wire bus pin of the DS18B20
+#define ONE_WIRE_BUS 4
+
 // Create software serial object to communicate with SIM800L
 SoftwareSerial mySerial(TX_PIN, RX_PIN);
 
 // Create a NewPing object to communicate with the ultra sonic sensor.
 NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DIST);
+
+// Init the one wire bus to the pin of the DS18B20
+OneWire oneWire(ONE_WIRE_BUS);
+
+// Set the reference of the one wire bus to the libary which calculates the temperature
+DallasTemperature tempSensor(&oneWire);
 
 // Create a RTClib object to communicate with rtc module.
 RTC_DS3231 rtc;
@@ -281,15 +292,14 @@ void setup() {
   //Begin serial communication with Arduino and SIM800L
   mySerial.begin(9600);
 
-  // Configure the SIM800L to show the number of a caller
-  //mySerial.println("AT+CLIP=1");
-  delay(10000);
-
   // If rtc module isn't working stop Arduino and send a sms to inform the admin
   if (! rtc.begin()) {
     sendingSMS(allowedNumbers[0], 8);
     while (1);
   }
+
+  // Start the DS18B20
+  tempSensor.begin();
 }
 
 /**
