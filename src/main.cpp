@@ -16,7 +16,7 @@
  */
 
 // First critical point (20 cm under foodbridge)
-#define CRIT_DIST_1 10
+#define CRIT_DIST_1 3
 
 // Second critical point (10 cm under foodbridge
 #define CRIT_DIST_2 2
@@ -94,7 +94,7 @@ boolean messureFail = false;
 int messuredHeigth = 0;
 
 // Messured water temperature
-float messuredWaterTemp = 0;
+int messuredWaterTemp = 0;
 
 // Time in ms since the last correct messurement
 long previousMillis = 0;
@@ -124,7 +124,7 @@ String createMessage(int code) {
     case 6:
       return "Meldestufe 3 aufgehoben!!!\nWasserstand: cm";
     case 7:
-      return "Fehler mit dem Ultraschallsensor bitte Überprüfen!";
+      return "Sensoren liefern falsche Werte! Bitte überprüfen!";
     case 8:
       return "Fehler mit dem RTC-Modul bitte überprüfen!";
   }
@@ -226,6 +226,8 @@ void sendDataToServer() {
   mySerial.print(SERVER_URL);
   mySerial.print(SERVER_PW);
   mySerial.print(messuredHeigth);
+  mySerial.print("/");
+  mySerial.print(messuredWaterTemp);
   mySerial.println("\"");
   delay(500);
 
@@ -310,13 +312,18 @@ void setup() {
  */
 void loop() {
   messuredHeigth = sonar.ping_cm();
-  messuredWaterTemp = tempSensor.getTempCByIndex(0);
+  tempSensor.requestTemperatures();
+  float rawWaterTemp = tempSensor.getTempCByIndex(0);
+
+  // Float can't be sent so we need to cast it to a int
+  messuredWaterTemp = int (rawWaterTemp*10);
   long currentMillis = millis();
   Serial.println(messuredHeigth);
-  Serial.println(messuredWaterTemp);
+  Serial.println(rawWaterTemp);
+
   // Check if sensor getting no wrong values
   if (messuredHeigth > MIN_DIST && messuredHeigth < MAX_DIST
-          && messuredWaterTemp != DEVICE_DISCONNECTED_C) {
+          && rawWaterTemp != DEVICE_DISCONNECTED_C) {
     messureFail = false;
     previousMillis = currentMillis;
     checkWaterHeight();
