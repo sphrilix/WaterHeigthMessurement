@@ -228,6 +228,7 @@ void sendDataToServer() {
   mySerial.print(messuredHeigth);
   mySerial.print("/");
   mySerial.print(messuredWaterTemp);
+  mySerial.print("/");
   mySerial.println("\"");
   delay(500);
 
