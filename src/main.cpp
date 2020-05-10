@@ -16,13 +16,13 @@
  */
 
 // First critical point (20 cm under foodbridge)
-#define CRIT_DIST_1 3
+#define CRIT_DIST_1 547
 
 // Second critical point (10 cm under foodbridge
-#define CRIT_DIST_2 2
+#define CRIT_DIST_2 548
 
 // Third critical point (water entering the hut)
-#define CRIT_DIST_3 1
+#define CRIT_DIST_3 549
 
  // Size of allowed numbers
 #define SIZE_OF_ALLOWED_NUMBERS 1
@@ -56,6 +56,9 @@
 
 // One wire bus pin of the DS18B20
 #define ONE_WIRE_BUS 4
+
+// Distance from the sensor to the deepest point of the lake
+#define DIST_OVER_NULL 550
 
 // Create software serial object to communicate with SIM800L
 SoftwareSerial mySerial(TX_PIN, RX_PIN);
@@ -92,6 +95,9 @@ boolean messureFail = false;
 
 // Messured heigth of the water
 int messuredHeigth = 0;
+
+// Messured heigth from the ultra sonoc sensor
+int rawMessuredHeight = 0;
 
 // Messured water temperature
 int messuredWaterTemp = 0;
@@ -234,7 +240,7 @@ void sendDataToServer() {
 
   // Establish the HTTP connection
   mySerial.println("AT+HTTPACTION=0");
-  delay(5000);
+  delay(20000);
   Serial.print("Gemessener Stand:");
   Serial.println(sonar.ping_cm());
   terminateConnection();
@@ -247,37 +253,37 @@ void sendDataToServer() {
  */
 void checkWaterHeight() {
   Serial.println(messuredHeigth);
-  if (messuredHeigth <= CRIT_DIST_3 && !warning3Sent) {
+  if (messuredHeigth >= CRIT_DIST_3 && !warning3Sent) {
     Serial.println(createMessage(3));
     sendingSMS(allowedNumbers[0], 3);
     delay(10000);
     sendDataToServer();
     warning3Sent = true;
-  } else if (messuredHeigth <= CRIT_DIST_2 && !warning2Sent) {
+  } else if (messuredHeigth >= CRIT_DIST_2 && !warning2Sent) {
     Serial.println(createMessage(2));
     sendingSMS(allowedNumbers[0], 2);
     delay(10000);
     sendDataToServer();
     warning2Sent = true;
-  } else if (messuredHeigth <= CRIT_DIST_1 && !warning1Sent) {
+  } else if (messuredHeigth >= CRIT_DIST_1 && !warning1Sent) {
     Serial.println(createMessage(1));
     sendingSMS(allowedNumbers[0], 1);
     delay(10000);
     sendDataToServer();
     warning1Sent = true;
-  } else if (messuredHeigth > CRIT_DIST_3 && warning3Sent) {
+  } else if (messuredHeigth < CRIT_DIST_3 && warning3Sent) {
     Serial.println(createMessage(6));
     sendingSMS(allowedNumbers[0], 6);
     delay(10000);
     sendDataToServer();
     warning3Sent = false;
-  }else if (messuredHeigth > CRIT_DIST_2 && warning2Sent) {
+  }else if (messuredHeigth < CRIT_DIST_2 && warning2Sent) {
     Serial.println(createMessage(5));
     sendingSMS(allowedNumbers[0], 5);
     delay(10000);
     sendDataToServer();
     warning2Sent = false;
-  }else if (messuredHeigth > CRIT_DIST_1 && warning1Sent) {
+  }else if (messuredHeigth < CRIT_DIST_1 && warning1Sent) {
     Serial.println(createMessage(4));
     sendingSMS(allowedNumbers[0], 4);
     delay(10000);
@@ -286,6 +292,15 @@ void checkWaterHeight() {
   }
 }
 
+/**
+ * Calculates the real water heigth, distance from the sensor being above the
+ * deepest point of the lake minus the messured distance from the sensor to the
+ * water level.
+ * @return Returns the real water height.
+ */
+int calcWaterHeigth() {
+  return DIST_OVER_NULL - rawMessuredHeight;
+}
 
 /**
  * Setup which needs to be done before the loop can start.
@@ -312,7 +327,8 @@ void setup() {
  * Main function of the program.
  */
 void loop() {
-  messuredHeigth = sonar.ping_cm();
+  rawMessuredHeight = sonar.ping_cm();
+  messuredHeigth = calcWaterHeigth();
   tempSensor.requestTemperatures();
   float rawWaterTemp = tempSensor.getTempCByIndex(0);
 
@@ -323,7 +339,7 @@ void loop() {
   Serial.println(rawWaterTemp);
 
   // Check if sensor getting no wrong values
-  if (messuredHeigth > MIN_DIST && messuredHeigth < MAX_DIST
+  if (rawMessuredHeight > MIN_DIST && rawMessuredHeight < MAX_DIST
           && rawWaterTemp != DEVICE_DISCONNECTED_C) {
     messureFail = false;
     previousMillis = currentMillis;
