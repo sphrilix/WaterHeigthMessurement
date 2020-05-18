@@ -7,12 +7,14 @@
 #include "DallasTemperature.h"
 
 /**
- * This is a small IoT project, to automatically messure the water height of
- * the Freudensee located in Hauzenberg.
+ * This is a small IoT project, to automatically messure the water height and
+ * temperature of the Freudensee located in Hauzenberg.
  * This is the code of the transmitter station, which provides the messure of
- * the water heigth by using the HC-SR04 ultra sonic sensor.
- * After the water heigth is messured the data will be sent every 2 hours to a
- * server over the GPRS network using the SIM800L module.sdasdas
+ * the water heigth by using the HC-SR04 ultra sonic sensor, as well using the
+ * DS18B20 module to messure the temperature of the lake.
+ * After the water heigth and temperature are messured the data will be sent
+ * every 30 minutes to a server over the GPRS network using the SIM800L module.
+ * The values can be seen here: https://wawa-wasserstand.herokuapp.com/
  */
 
 // First critical point (20 cm under foodbridge)
@@ -25,7 +27,7 @@
 #define CRIT_DIST_3 549
 
  // Size of allowed numbers
-#define SIZE_OF_ALLOWED_NUMBERS 1
+#define SIZE_OF_ALLOWED_NUMBERS 5
 
 // Trigger of the ultra sonic module
 #define TRIGGER_PIN 7
@@ -44,6 +46,9 @@
 
 // RX pin of the SIM800L module
 #define RX_PIN 3
+
+// RST pin of the SIM800L module
+#define RST_PIN 9
 
 // Server URL
 #define SERVER_URL "https://wawa-wasserstand.herokuapp.com/"
@@ -76,7 +81,8 @@ DallasTemperature tempSensor(&oneWire);
 RTC_DS3231 rtc;
 
 // String array of the numbers to get notifed
-String allowedNumbers[] = { "+491702144124", "+4915223152448" };
+String allowedNumbers[] = { "+4915142437055", "+4915223152448",
+          "+4915224760882", "+491712949778", "+491606488035" };
 
 // Boolean if criticial point 1 is reached and the corresponding warning is sent
 boolean warning1Sent = false;
@@ -118,17 +124,17 @@ String createMessage(int code) {
     case 0:
       return "Wasserstand: cm";
     case 1:
-      return "Meldestufe 1 erreicht!!!\nWasserstand:  cm";
+      return "Meldestufe 1 erreicht!!!";
     case 2:
-      return "Meldestufe 2 erreicht!!!\nWasserstand: cm";
+      return "Meldestufe 2 erreicht!!!";
     case 3:
-      return "Wir saufen ab!!! Meldestufe 3 erreicht!!!\nWasserstand: cm";
+      return "Wir saufen ab!!! Meldestufe 3 erreicht!!!";
     case 4:
-      return "Meldestufe 1 aufgehoben!!!\nWasserstand: cm";
+      return "Meldestufe 1 aufgehoben!!!";
     case 5:
-      return "Meldestufe 2 aufgehoben!!!\nWasserstand: cm";
+      return "Meldestufe 2 aufgehoben!!!";
     case 6:
-      return "Meldestufe 3 aufgehoben!!!\nWasserstand: cm";
+      return "Meldestufe 3 aufgehoben!!!";
     case 7:
       return "Sensoren liefern falsche Werte! Bitte überprüfen!";
     case 8:
@@ -166,6 +172,15 @@ void warnAll(int messageCode) {
   for (int i = 0; i < SIZE_OF_ALLOWED_NUMBERS; i++) {
     sendingSMS(allowedNumbers[i], messageCode);
   }
+}
+
+/**
+ * Resets the module by setting the RST_PIN low.
+ */
+void resetSIM800L() {
+  digitalWrite(RST_PIN, LOW);
+  delay(500);
+  digitalWrite(RST_PIN, HIGH);
 }
 
 /**
@@ -240,10 +255,11 @@ void sendDataToServer() {
 
   // Establish the HTTP connection
   mySerial.println("AT+HTTPACTION=0");
-  delay(20000);
+  delay(30000);
   Serial.print("Gemessener Stand:");
-  Serial.println(sonar.ping_cm());
+  Serial.println(messuredHeigth);
   terminateConnection();
+  resetSIM800L();
 }
 
 /**
@@ -306,6 +322,9 @@ int calcWaterHeigth() {
  * Setup which needs to be done before the loop can start.
  */
 void setup() {
+  pinMode(RST_PIN, OUTPUT);
+  digitalWrite(RST_PIN, HIGH);
+  delay(20000);
 
   // Begin serial communication with Arduino and Arduino IDE (Serial Monitor)
   Serial.begin(9600);
