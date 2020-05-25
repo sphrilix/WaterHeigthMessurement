@@ -44,10 +44,10 @@
 #define RX_PIN 3
 
 // Server URL
-#define SERVER_URL "https://wawa-wasserstand.herokuapp.com/"
+#define SERVER_URL "ServerURL"
 
 // Server password
-#define SERVER_PW "gxcxWUxezdAgrhZz2EZH/"
+#define SERVER_PW "ServerPw"
 
 // Interval in ms for trying to get valid values after getting invalid ones
 #define INTERVAL 1200000
@@ -62,7 +62,7 @@ NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DIST);
 RTC_DS3231 rtc;
 
 // String array of the numbers to get notifed
-String allowedNumbers[] = { "+491702144124", "+4915223152448" };
+String allowedNumbers[] = { "number1", "number2",... };
 
 // Boolean if criticial point 1 is reached and the corresponding warning is sent
 boolean warning1Sent = false;
