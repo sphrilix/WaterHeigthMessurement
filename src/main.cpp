@@ -23,7 +23,7 @@
 #define CRIT_DIST_3 1
 
  // Size of allowed numbers
-#define SIZE_OF_ALLOWED_NUMBERS 1
+#define SIZE_OF_ALLOWED_NUMBERS 5
 
 // Trigger of the ultra sonic module
 #define TRIGGER_PIN 7
@@ -62,7 +62,7 @@ NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DIST);
 RTC_DS3231 rtc;
 
 // String array of the numbers to get notifed
-String allowedNumbers[] = { "number1", "number2",... };
+String allowedNumbers[] = {};
 
 // Boolean if criticial point 1 is reached and the corresponding warning is sent
 boolean warning1Sent = false;
@@ -264,37 +264,37 @@ void checkWaterHeight() {
   Serial.println(messuredHeigth);
   if (messuredHeigth <= CRIT_DIST_3 && !warning3Sent) {
     Serial.println(createMessage(3));
-    sendingSMS(allowedNumbers[0], 3);
+    warnAll(3);
     delay(10000);
     sendDataToServer();
     warning3Sent = true;
   } else if (messuredHeigth <= CRIT_DIST_2 && !warning2Sent) {
     Serial.println(createMessage(2));
-    sendingSMS(allowedNumbers[0], 2);
+    warnAll(2);
     delay(10000);
     sendDataToServer();
     warning2Sent = true;
   } else if (messuredHeigth <= CRIT_DIST_1 && !warning1Sent) {
     Serial.println(createMessage(1));
-    sendingSMS(allowedNumbers[0], 1);
+    warnAll(1);
     delay(10000);
     sendDataToServer();
     warning1Sent = true;
   } else if (messuredHeigth > CRIT_DIST_3 && warning3Sent) {
     Serial.println(createMessage(6));
-    sendingSMS(allowedNumbers[0], 6);
+    warnAll(6);
     delay(10000);
     sendDataToServer();
     warning3Sent = false;
   }else if (messuredHeigth > CRIT_DIST_2 && warning2Sent) {
     Serial.println(createMessage(5));
-    sendingSMS(allowedNumbers[0], 5);
+    warnAll(5);
     delay(10000);
     sendDataToServer();
     warning2Sent = false;
   }else if (messuredHeigth > CRIT_DIST_1 && warning1Sent) {
     Serial.println(createMessage(4));
-    sendingSMS(allowedNumbers[0], 4);
+    warnAll(4);
     delay(10000);
     sendDataToServer();
     warning1Sent = false;
@@ -340,12 +340,12 @@ void loop() {
     previousMillis = currentMillis;
     checkWaterHeight();
 
-    // Send data every 2 hours.
+    // Send data every 10 minutes.
     DateTime now = rtc.now();
-    if ((now.minute() % 2 == 0) && (!dataSent)) {
+    if ((now.minute() % 10 == 0) && (!dataSent)) {
       sendDataToServer();
       dataSent = true;
-    } else if (now.minute() % 2 != 0) {
+    } else if (now.minute() % 10 != 0) {
       dataSent = false;
     }
 
