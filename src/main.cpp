@@ -18,16 +18,16 @@
  */
 
 // First critical point (20 cm under foodbridge)
-#define CRIT_DIST_1 547
+#define CRIT_DIST_1 322
 
 // Second critical point (10 cm under foodbridge
-#define CRIT_DIST_2 548
+#define CRIT_DIST_2 332
 
 // Third critical point (water entering the hut)
-#define CRIT_DIST_3 549
+#define CRIT_DIST_3 342
 
  // Size of allowed numbers
-#define SIZE_OF_ALLOWED_NUMBERS 5
+#define SIZE_OF_ALLOWED_NUMBERS 4
 
 // Trigger of the ultra sonic module
 #define TRIGGER_PIN 7
@@ -63,7 +63,7 @@
 #define ONE_WIRE_BUS 4
 
 // Distance from the sensor to the deepest point of the lake
-#define DIST_OVER_NULL 550
+#define DIST_OVER_NULL 402
 
 // Create software serial object to communicate with SIM800L
 SoftwareSerial mySerial(TX_PIN, RX_PIN);
@@ -81,8 +81,7 @@ DallasTemperature tempSensor(&oneWire);
 RTC_DS3231 rtc;
 
 // String array of the numbers to get notifed
-String allowedNumbers[] = { "+4915142437055", "+4915223152448",
-          "+4915224760882", "+491712949778", "+491606488035" };
+String allowedNumbers[] = {"+4915142437055", "+4915224760882", "+491711707191", "+491606488035"};
 
 // Boolean if criticial point 1 is reached and the corresponding warning is sent
 boolean warning1Sent = false;
@@ -148,7 +147,7 @@ String createMessage(int code) {
  * @param messageCode Given message to be sent
  */
 void sendingSMS(String number, int messageCode) {
-  delay(500);
+  delay(1500);
 
   // Configuring TEXT mode
   mySerial.println("AT+CMGF=1");
@@ -171,6 +170,7 @@ void sendingSMS(String number, int messageCode) {
 void warnAll(int messageCode) {
   for (int i = 0; i < SIZE_OF_ALLOWED_NUMBERS; i++) {
     sendingSMS(allowedNumbers[i], messageCode);
+    delay(1000);
   }
 }
 
@@ -271,37 +271,37 @@ void checkWaterHeight() {
   Serial.println(messuredHeigth);
   if (messuredHeigth >= CRIT_DIST_3 && !warning3Sent) {
     Serial.println(createMessage(3));
-    sendingSMS(allowedNumbers[0], 3);
+    warnAll(3);
     delay(10000);
     sendDataToServer();
     warning3Sent = true;
   } else if (messuredHeigth >= CRIT_DIST_2 && !warning2Sent) {
     Serial.println(createMessage(2));
-    sendingSMS(allowedNumbers[0], 2);
+    warnAll(2);
     delay(10000);
     sendDataToServer();
     warning2Sent = true;
   } else if (messuredHeigth >= CRIT_DIST_1 && !warning1Sent) {
     Serial.println(createMessage(1));
-    sendingSMS(allowedNumbers[0], 1);
+    warnAll(1);
     delay(10000);
     sendDataToServer();
     warning1Sent = true;
   } else if (messuredHeigth < CRIT_DIST_3 && warning3Sent) {
     Serial.println(createMessage(6));
-    sendingSMS(allowedNumbers[0], 6);
+    warnAll(6);
     delay(10000);
     sendDataToServer();
     warning3Sent = false;
   }else if (messuredHeigth < CRIT_DIST_2 && warning2Sent) {
     Serial.println(createMessage(5));
-    sendingSMS(allowedNumbers[0], 5);
+    warnAll(5);
     delay(10000);
     sendDataToServer();
     warning2Sent = false;
   }else if (messuredHeigth < CRIT_DIST_1 && warning1Sent) {
     Serial.println(createMessage(4));
-    sendingSMS(allowedNumbers[0], 4);
+    warnAll(4);
     delay(10000);
     sendDataToServer();
     warning1Sent = false;
@@ -346,7 +346,14 @@ void setup() {
  * Main function of the program.
  */
 void loop() {
-  rawMessuredHeight = sonar.ping_cm();
+  rawMessuredHeight = 0;
+  for (int i = 0; i < 100; i++) {
+    rawMessuredHeight = rawMessuredHeight + sonar.ping_cm();
+    delay(100);
+  }
+  rawMessuredHeight = rawMessuredHeight / 100;
+
+  //rawMessuredHeight = sonar.ping_cm();
   messuredHeigth = calcWaterHeigth();
   tempSensor.requestTemperatures();
   float rawWaterTemp = tempSensor.getTempCByIndex(0);
